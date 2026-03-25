@@ -1,0 +1,292 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Authentication ───────────────────────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  nom       String
+  prenom    String
+  role      String   @default("LECTURE") // ADMIN, RESPONSABLE, COORDINATEUR, FORMATEUR, LECTURE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  formateur Formateur?
+  auditLogs AuditLog[]
+}
+
+// ─── Formateurs ───────────────────────────────────────────────────────────────
+
+model Formateur {
+  id           Int      @id @default(autoincrement())
+  userId       Int?     @unique
+  nom          String
+  prenom       String
+  email        String   @unique
+  telephone    String?
+  specialites  String?  // JSON array of specialties
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user              User?               @relation(fields: [userId], references: [id])
+  coursFormateurs   CoursFormateur[]
+  disponibilites    DisponibiliteFormateur[]
+}
+
+model DisponibiliteFormateur {
+  id           Int       @id @default(autoincrement())
+  formateurId  Int
+  dateDebut    DateTime
+  dateFin      DateTime
+  disponible   Boolean   @default(true) // false = indisponible
+  motif        String?
+  createdAt    DateTime  @default(now())
+
+  formateur    Formateur @relation(fields: [formateurId], references: [id], onDelete: Cascade)
+}
+
+// ─── Salles ───────────────────────────────────────────────────────────────────
+
+model Salle {
+  id          Int      @id @default(autoincrement())
+  nom         String
+  code        String   @unique
+  capacite    Int
+  type        String   @default("SALLE") // SALLE, LABO, AMPHI, SALLE_INFO, DISTANCIEL
+  equipements String?  // JSON array
+  batiment    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  coursSalles       CoursSalle[]
+  disponibilites    DisponibiliteSalle[]
+}
+
+model DisponibiliteSalle {
+  id        Int      @id @default(autoincrement())
+  salleId   Int
+  dateDebut DateTime
+  dateFin   DateTime
+  disponible Boolean @default(true)
+  motif     String?
+  createdAt DateTime @default(now())
+
+  salle     Salle    @relation(fields: [salleId], references: [id], onDelete: Cascade)
+}
+
+// ─── Compétences ─────────────────────────────────────────────────────────────
+
+model BlocCompetence {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  intitule    String
+  description String?
+  rncp        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  competences Competence[]
+}
+
+model Competence {
+  id              Int      @id @default(autoincrement())
+  code            String   @unique
+  intitule        String
+  description     String?
+  blocId          Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bloc            BlocCompetence?  @relation(fields: [blocId], references: [id])
+  coursCompetences CoursCompetence[]
+}
+
+// ─── Cursus ───────────────────────────────────────────────────────────────────
+
+model Cursus {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  intitule    String
+  description String?
+  niveau      String?
+  dureeHeures Int?
+  version     Int      @default(1)
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cours       CursusCours[]
+  versions    CursusVersion[]
+  promotions  Promotion[]
+}
+
+model CursusVersion {
+  id        Int      @id @default(autoincrement())
+  cursusId  Int
+  version   Int
+  snapshot  String   // JSON snapshot of cursus state
+  createdBy Int?
+  createdAt DateTime @default(now())
+
+  cursus    Cursus   @relation(fields: [cursusId], references: [id], onDelete: Cascade)
+}
+
+// ─── Cours ────────────────────────────────────────────────────────────────────
+
+model Cours {
+  id                  Int      @id @default(autoincrement())
+  code                String   @unique
+  titre               String
+  description         String?
+  dureeHeures         Int
+  dureeDays           Int?
+  niveau              String?
+  modalite            String   @default("PRESENTIEL") // PRESENTIEL, DISTANCIEL, HYBRIDE
+  type                String   @default("THEORIQUE") // THEORIQUE, TP, PROJET, EVALUATION, ATELIER, ACCOMPAGNEMENT
+  objectifs           String?
+  prerequisTexte      String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  cursusCours       CursusCours[]
+  competences       CoursCompetence[]
+  formateurs        CoursFormateur[]
+  salles            CoursSalle[]
+  prerequis         CoursPrerequisite[] @relation("CoursPrerequisite")
+  dependances       CoursPrerequisite[] @relation("CoursDepend")
+  planifications    Planification[]
+  contraintes       Contrainte[]
+}
+
+// ─── Tables de jonction ───────────────────────────────────────────────────────
+
+model CursusCours {
+  id        Int    @id @default(autoincrement())
+  cursusId  Int
+  coursId   Int
+  ordre     Int    @default(0)
+  obligatoire Boolean @default(true)
+
+  cursus    Cursus @relation(fields: [cursusId], references: [id], onDelete: Cascade)
+  cours     Cours  @relation(fields: [coursId], references: [id], onDelete: Cascade)
+
+  @@unique([cursusId, coursId])
+}
+
+model CoursCompetence {
+  coursId      Int
+  competenceId Int
+
+  cours        Cours      @relation(fields: [coursId], references: [id], onDelete: Cascade)
+  competence   Competence @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+
+  @@id([coursId, competenceId])
+}
+
+model CoursFormateur {
+  coursId      Int
+  formateurId  Int
+  role         String @default("PRINCIPAL") // PRINCIPAL, COANIMATEUR
+
+  cours        Cours     @relation(fields: [coursId], references: [id], onDelete: Cascade)
+  formateur    Formateur @relation(fields: [formateurId], references: [id], onDelete: Cascade)
+
+  @@id([coursId, formateurId])
+}
+
+model CoursSalle {
+  coursId  Int
+  salleId  Int
+
+  cours    Cours @relation(fields: [coursId], references: [id], onDelete: Cascade)
+  salle    Salle @relation(fields: [salleId], references: [id], onDelete: Cascade)
+
+  @@id([coursId, salleId])
+}
+
+model CoursPrerequisite {
+  coursId      Int
+  prerequisId  Int
+
+  cours        Cours @relation("CoursPrerequisite", fields: [coursId], references: [id], onDelete: Cascade)
+  prerequis    Cours @relation("CoursDepend", fields: [prerequisId], references: [id], onDelete: Cascade)
+
+  @@id([coursId, prerequisId])
+}
+
+// ─── Planification ───────────────────────────────────────────────────────────
+
+model Promotion {
+  id          Int      @id @default(autoincrement())
+  nom         String
+  code        String   @unique
+  cursusId    Int
+  dateDebut   DateTime
+  dateFin     DateTime
+  effectif    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cursus       Cursus         @relation(fields: [cursusId], references: [id])
+  planifications Planification[]
+}
+
+model Planification {
+  id           Int      @id @default(autoincrement())
+  promotionId  Int
+  coursId      Int
+  salleId      Int?
+  dateDebut    DateTime
+  dateFin      DateTime
+  statut       String   @default("PLANIFIE") // PLANIFIE, CONFIRME, ANNULE
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  promotion    Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  cours        Cours     @relation(fields: [coursId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([coursId])
+}
+
+// ─── Contraintes ─────────────────────────────────────────────────────────────
+
+model Contrainte {
+  id          Int      @id @default(autoincrement())
+  coursId     Int?
+  type        String   // PERIODE_BLOQUEE, FORMATEUR_INDISPONIBLE, SALLE_INDISPONIBLE, PARALLELISATION, SEQUENTIEL
+  description String
+  parametres  String?  // JSON parameters
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cours       Cours?   @relation(fields: [coursId], references: [id])
+}
+
+// ─── Audit ────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  action     String
+  entite     String
+  entiteId   Int?
+  ancienneValeur String?
+  nouvelleValeur String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+}
