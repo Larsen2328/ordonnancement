@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../services/prisma';
 import { authenticate } from '../middleware/auth';
@@ -20,7 +20,7 @@ formateursRouter.get('/', async (_req, res: Response): Promise<void> => {
 
 // GET /api/formateurs/:id
 formateursRouter.get('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   const formateur = await prisma.formateur.findUnique({
     where: { id },
     include: {
@@ -60,7 +60,7 @@ formateursRouter.post('/',
 
 // PUT /api/formateurs/:id
 formateursRouter.put('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   const { nom, prenom, email, telephone, specialites } = req.body;
   const formateur = await prisma.formateur.update({
     where: { id },
@@ -71,7 +71,7 @@ formateursRouter.put('/:id', async (req, res: Response): Promise<void> => {
 
 // DELETE /api/formateurs/:id
 formateursRouter.delete('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   await prisma.formateur.delete({ where: { id } });
   res.status(204).send();
 });
@@ -80,13 +80,13 @@ formateursRouter.delete('/:id', async (req, res: Response): Promise<void> => {
 formateursRouter.post('/:id/disponibilites',
   body('dateDebut').isISO8601(),
   body('dateFin').isISO8601(),
-  async (req, res: Response): Promise<void> => {
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       res.status(400).json({ errors: errors.array() });
       return;
     }
-    const formateurId = parseInt(String((req as any).params?.id ?? req.params?.['id']));
+    const formateurId = parseInt(req.params.id);
     const { dateDebut, dateFin, disponible, motif } = req.body;
     const dispo = await prisma.disponibiliteFormateur.create({
       data: { formateurId, dateDebut: new Date(dateDebut), dateFin: new Date(dateFin), disponible: disponible !== false, motif },
@@ -97,7 +97,7 @@ formateursRouter.post('/:id/disponibilites',
 
 // DELETE /api/formateurs/disponibilites/:dispoId
 formateursRouter.delete('/disponibilites/:dispoId', async (req, res: Response): Promise<void> => {
-  const id = parseInt(req.params.dispoId);
+  const id = parseInt(req.params.dispoId as string);
   await prisma.disponibiliteFormateur.delete({ where: { id } });
   res.status(204).send();
 });

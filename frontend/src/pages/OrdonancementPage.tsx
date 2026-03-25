@@ -53,7 +53,6 @@ export default function OrdonancementPage() {
 
   const erreurs = result?.alertes.filter(a => a.severite === 'ERROR') || [];
   const avertissements = result?.alertes.filter(a => a.severite === 'WARNING') || [];
-  void avertissements;
 
   return (
     <div className="space-y-6">

@@ -20,7 +20,7 @@ cursusRouter.get('/', async (_req, res: Response): Promise<void> => {
 
 // GET /api/cursus/:id
 cursusRouter.get('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   const cursus = await prisma.cursus.findUnique({
     where: { id },
     include: {
@@ -76,7 +76,7 @@ cursusRouter.post('/',
 cursusRouter.put('/:id',
   body('intitule').optional().notEmpty(),
   async (req: AuthRequest, res: Response): Promise<void> => {
-    const id = parseInt(String(req.params["id"]));
+    const id = parseInt(req.params.id as string);
     const { code, intitule, description, niveau, dureeHeures, actif } = req.body;
 
     const existing = await prisma.cursus.findUnique({ where: { id } });
@@ -108,7 +108,7 @@ cursusRouter.put('/:id',
 
 // DELETE /api/cursus/:id
 cursusRouter.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   await prisma.cursus.delete({ where: { id } });
   await prisma.auditLog.create({
     data: { userId: req.user?.id, action: 'DELETE', entite: 'Cursus', entiteId: id },
@@ -118,7 +118,7 @@ cursusRouter.delete('/:id', async (req: AuthRequest, res: Response): Promise<voi
 
 // POST /api/cursus/:id/cours - Ajouter un cours au cursus
 cursusRouter.post('/:id/cours', async (req: AuthRequest, res: Response): Promise<void> => {
-  const cursusId = parseInt(String(req.params["id"]));
+  const cursusId = parseInt(req.params.id as string);
   const { coursId, ordre, obligatoire } = req.body;
 
   try {
@@ -133,15 +133,15 @@ cursusRouter.post('/:id/cours', async (req: AuthRequest, res: Response): Promise
 
 // DELETE /api/cursus/:id/cours/:coursId
 cursusRouter.delete('/:id/cours/:coursId', async (_req, res: Response): Promise<void> => {
-  const cursusId = parseInt(_req.params.id);
-  const coursId = parseInt(_req.params.coursId);
+  const cursusId = parseInt(_req.params.id as string);
+  const coursId = parseInt(_req.params.coursId as string);
   await prisma.cursusCours.deleteMany({ where: { cursusId, coursId } });
   res.status(204).send();
 });
 
 // PUT /api/cursus/:id/ordre - Réordonner les cours
 cursusRouter.put('/:id/ordre', async (req, res: Response): Promise<void> => {
-  const cursusId = parseInt(String(req.params["id"]));
+  const cursusId = parseInt(req.params.id as string);
   const { ordre } = req.body as { ordre: { coursId: number; ordre: number }[] };
 
   await Promise.all(
@@ -154,7 +154,7 @@ cursusRouter.put('/:id/ordre', async (req, res: Response): Promise<void> => {
 
 // GET /api/cursus/:id/versions
 cursusRouter.get('/:id/versions', async (req, res: Response): Promise<void> => {
-  const cursusId = parseInt(String(req.params["id"]));
+  const cursusId = parseInt(req.params.id as string);
   const versions = await prisma.cursusVersion.findMany({
     where: { cursusId },
     orderBy: { version: 'desc' },

@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../services/prisma';
 import { authenticate } from '../middleware/auth';
@@ -17,7 +17,7 @@ sallesRouter.get('/', async (_req, res: Response): Promise<void> => {
 
 // GET /api/salles/:id
 sallesRouter.get('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   const salle = await prisma.salle.findUnique({
     where: { id },
     include: { disponibilites: true },
@@ -54,7 +54,7 @@ sallesRouter.post('/',
 
 // PUT /api/salles/:id
 sallesRouter.put('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   const { nom, code, capacite, type, equipements, batiment } = req.body;
   const salle = await prisma.salle.update({
     where: { id },
@@ -65,7 +65,7 @@ sallesRouter.put('/:id', async (req, res: Response): Promise<void> => {
 
 // DELETE /api/salles/:id
 sallesRouter.delete('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   await prisma.salle.delete({ where: { id } });
   res.status(204).send();
 });
@@ -74,13 +74,13 @@ sallesRouter.delete('/:id', async (req, res: Response): Promise<void> => {
 sallesRouter.post('/:id/disponibilites',
   body('dateDebut').isISO8601(),
   body('dateFin').isISO8601(),
-  async (req, res: Response): Promise<void> => {
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       res.status(400).json({ errors: errors.array() });
       return;
     }
-    const salleId = parseInt(String((req as any).params?.id ?? req.params?.['id']));
+    const salleId = parseInt(req.params.id);
     const { dateDebut, dateFin, disponible, motif } = req.body;
     const dispo = await prisma.disponibiliteSalle.create({
       data: { salleId, dateDebut: new Date(dateDebut), dateFin: new Date(dateFin), disponible: disponible !== false, motif },

@@ -33,3 +33,6 @@ Thumbs.db
 
 # Vite
 frontend/dist/
+# TypeScript build info
+frontend/tsconfig.tsbuildinfo
+backend/tsconfig.tsbuildinfo

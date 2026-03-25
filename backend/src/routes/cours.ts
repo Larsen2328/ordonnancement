@@ -22,7 +22,7 @@ coursRouter.get('/', async (_req, res: Response): Promise<void> => {
 
 // GET /api/cours/:id
 coursRouter.get('/:id', async (req, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   const cours = await prisma.cours.findUnique({
     where: { id },
     include: {
@@ -70,7 +70,7 @@ coursRouter.post('/',
 
 // PUT /api/cours/:id
 coursRouter.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   const { code, titre, description, dureeHeures, dureeDays, niveau, modalite, type, objectifs, prerequisTexte } = req.body;
 
   const cours = await prisma.cours.update({
@@ -85,7 +85,7 @@ coursRouter.put('/:id', async (req: AuthRequest, res: Response): Promise<void> =
 
 // DELETE /api/cours/:id
 coursRouter.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
-  const id = parseInt(String(req.params["id"]));
+  const id = parseInt(req.params.id as string);
   await prisma.cours.delete({ where: { id } });
   await prisma.auditLog.create({
     data: { userId: req.user?.id, action: 'DELETE', entite: 'Cours', entiteId: id },
@@ -95,7 +95,7 @@ coursRouter.delete('/:id', async (req: AuthRequest, res: Response): Promise<void
 
 // POST /api/cours/:id/prerequis
 coursRouter.post('/:id/prerequis', async (req, res: Response): Promise<void> => {
-  const coursId = parseInt(String(req.params["id"]));
+  const coursId = parseInt(req.params.id as string);
   const { prerequisId } = req.body;
 
   if (coursId === prerequisId) {
@@ -113,15 +113,15 @@ coursRouter.post('/:id/prerequis', async (req, res: Response): Promise<void> => 
 
 // DELETE /api/cours/:id/prerequis/:prerequisId
 coursRouter.delete('/:id/prerequis/:prerequisId', async (req, res: Response): Promise<void> => {
-  const coursId = parseInt(String(req.params["id"]));
-  const prerequisId = parseInt(req.params.prerequisId);
+  const coursId = parseInt(req.params.id as string);
+  const prerequisId = parseInt(req.params.prerequisId as string);
   await prisma.coursPrerequisite.deleteMany({ where: { coursId, prerequisId } });
   res.status(204).send();
 });
 
 // POST /api/cours/:id/competences
 coursRouter.post('/:id/competences', async (req, res: Response): Promise<void> => {
-  const coursId = parseInt(String(req.params["id"]));
+  const coursId = parseInt(req.params.id as string);
   const { competenceId } = req.body;
   try {
     await prisma.coursCompetence.create({ data: { coursId, competenceId } });
@@ -133,15 +133,15 @@ coursRouter.post('/:id/competences', async (req, res: Response): Promise<void> =
 
 // DELETE /api/cours/:id/competences/:competenceId
 coursRouter.delete('/:id/competences/:competenceId', async (req, res: Response): Promise<void> => {
-  const coursId = parseInt(String(req.params["id"]));
-  const competenceId = parseInt(req.params.competenceId);
+  const coursId = parseInt(req.params.id as string);
+  const competenceId = parseInt(req.params.competenceId as string);
   await prisma.coursCompetence.delete({ where: { coursId_competenceId: { coursId, competenceId } } });
   res.status(204).send();
 });
 
 // POST /api/cours/:id/formateurs
 coursRouter.post('/:id/formateurs', async (req, res: Response): Promise<void> => {
-  const coursId = parseInt(String(req.params["id"]));
+  const coursId = parseInt(req.params.id as string);
   const { formateurId, role } = req.body;
   try {
     await prisma.coursFormateur.create({ data: { coursId, formateurId, role: role || 'PRINCIPAL' } });
@@ -153,8 +153,8 @@ coursRouter.post('/:id/formateurs', async (req, res: Response): Promise<void> =>
 
 // DELETE /api/cours/:id/formateurs/:formateurId
 coursRouter.delete('/:id/formateurs/:formateurId', async (req, res: Response): Promise<void> => {
-  const coursId = parseInt(String(req.params["id"]));
-  const formateurId = parseInt(req.params.formateurId);
+  const coursId = parseInt(req.params.id as string);
+  const formateurId = parseInt(req.params.formateurId as string);
   await prisma.coursFormateur.delete({ where: { coursId_formateurId: { coursId, formateurId } } });
   res.status(204).send();
 });
